@@ -4,7 +4,7 @@ Pydantic schemas and ORM models for certificate generation
 """
 
 from pydantic import BaseModel, Field, validator
-from typing import Optional
+from typing import Optional, List
 from datetime import datetime
 from uuid import uuid4
 import re
@@ -31,6 +31,17 @@ class CertificateBase(BaseModel):
         ...,
         description="Date when certificate was issued (YYYY-MM-DD format)"
     )
+    certificate_type: str = Field(
+        default="participation",
+        description="Type of certificate: 'participation' or 'completion'"
+    )
+    
+    @validator('certificate_type')
+    def validate_certificate_type(cls, v):
+        """Validate certificate type"""
+        if v not in ['participation', 'completion']:
+            raise ValueError('Certificate type must be either "participation" or "completion"')
+        return v
     
     @validator('participant_name')
     def validate_participant_name(cls, v):
@@ -48,7 +59,7 @@ class CertificateBase(BaseModel):
         if not v.strip():
             raise ValueError('Event name cannot be empty')
         return v.strip()
-    
+
     @validator('date_issued')
     def validate_date_format(cls, v):
         """Validate date format"""
@@ -97,42 +108,52 @@ class CertificateResponse(CertificateBase):
         }
 
 
+class BulkCertificateItem(BaseModel):
+    """Individual certificate item for bulk generation"""
+    participant_name: str = Field(..., description="Participant's full name")
+    email: Optional[str] = Field(None, description="Participant's email address")
+    
+    @validator('participant_name')
+    def validate_participant_name(cls, v):
+        if not v.strip():
+            raise ValueError('Participant name cannot be empty')
+        if not re.match(r"^[a-zA-Z\s\-'\.]+$", v):
+            raise ValueError('Participant name contains invalid characters')
+        return v.strip()
+
+
 class BulkCertificateRequest(BaseModel):
-    """Schema for bulk certificate generation"""
-    participants: list[CertificateCreate] = Field(
-        ...,
-        min_length=1,
-        max_length=100,
-        description="List of participants (max 100 per request)"
+    """Request model for bulk certificate generation"""
+    event_name: str = Field(..., min_length=3, max_length=200)
+    date_issued: str = Field(..., description="Date in YYYY-MM-DD format")
+    participants: List[BulkCertificateItem] = Field(..., min_items=1, max_items=100)
+    certificate_type: str = Field(
+        default="participation",
+        description="Type of certificate: 'participation' or 'completion'"
     )
     
-    class Config:
-        json_schema_extra = {
-            "example": {
-                "participants": [
-                    {
-                        "participant_name": "Alice Johnson",
-                        "event_name": "GDG Babcock Hacktoberfest 2025",
-                        "date_issued": "2025-10-04"
-                    },
-                    {
-                        "participant_name": "Bob Smith",
-                        "event_name": "GDG Babcock Hacktoberfest 2025",
-                        "date_issued": "2025-10-04"
-                    }
-                ]
-            }
-        }
+    @validator('event_name')
+    def validate_event_name(cls, v):
+        if not v.strip():
+            raise ValueError('Event name cannot be empty')
+        return v.strip()
+    
+    @validator('certificate_type')
+    def validate_certificate_type(cls, v):
+        """Validate certificate type"""
+        if v not in ['participation', 'completion']:
+            raise ValueError('Certificate type must be either "participation" or "completion"')
+        return v
 
 
 class BulkCertificateResponse(BaseModel):
-    """Schema for bulk certificate generation response"""
-    message: str
-    total_requested: int
-    successful: int
-    failed: int
-    results: list[CertificateResponse]
-    errors: Optional[list[dict]] = None
+    """Response model for bulk certificate generation"""
+    success_count: int
+    failed_count: int
+    total_count: int
+    successful_certificates: List[dict]
+    failed_certificates: List[dict]
+    download_url: Optional[str] = None
 
 
 class CertificateListResponse(BaseModel):
@@ -215,40 +236,40 @@ class Certificate:
 # ORM Model stub using SQLAlchemy (for future database implementation)
 # Uncomment and configure when database support is added
 
-# from sqlalchemy import Column, String, DateTime
-# from sqlalchemy.ext.declarative import declarative_base
+from sqlalchemy import Column, String, DateTime
+from ..database import Base
 
-# Base = declarative_base()
+# Base = declarative_base() # This is now imported from ..database
 
-# class CertificateORM(Base):
-#     '''SQLAlchemy ORM model for Certificate'''
+class CertificateORM(Base):
+    '''SQLAlchemy ORM model for Certificate'''
     
-#     __tablename__ = 'certificates'
+    __tablename__ = 'certificates'
     
-#     unique_id = Column(String(50), primary_key=True, index=True)
-#     participant_name = Column(String(100), nullable=False, index=True)
-#     event_name = Column(String(200), nullable=False, index=True)
-#     date_issued = Column(String(10), nullable=False)
-#     filename = Column(String(255), nullable=False, unique=True)
-#     file_path = Column(String(500), nullable=True)
-#     created_at = Column(DateTime, default=datetime.now)
-#     updated_at = Column(DateTime, default=datetime.now, onupdate=datetime.now)
+    unique_id = Column(String(50), primary_key=True, index=True)
+    participant_name = Column(String(100), nullable=False, index=True)
+    event_name = Column(String(200), nullable=False, index=True)
+    date_issued = Column(String(10), nullable=False)
+    filename = Column(String(255), nullable=False, unique=True)
+    file_path = Column(String(500), nullable=True)
+    created_at = Column(DateTime, default=datetime.now)
+    updated_at = Column(DateTime, default=datetime.now, onupdate=datetime.now)
     
-#     def __repr__(self):
-#         return f"<Certificate(id={self.unique_id}, participant={self.participant_name})>"
+    def __repr__(self):
+        return f"<Certificate(id={self.unique_id}, participant={self.participant_name})>"
     
-#     def to_dict(self):
-#         '''Convert ORM model to dictionary'''
-#         return {
-#             'unique_id': self.unique_id,
-#             'participant_name': self.participant_name,
-#             'event_name': self.event_name,
-#             'date_issued': self.date_issued,
-#             'filename': self.filename,
-#             'file_path': self.file_path,
-#             'created_at': self.created_at.isoformat() if self.created_at else None,
-#             'updated_at': self.updated_at.isoformat() if self.updated_at else None
-#         }
+    def to_dict(self):
+        '''Convert ORM model to dictionary'''
+        return {
+            'unique_id': self.unique_id,
+            'participant_name': self.participant_name,
+            'event_name': self.event_name,
+            'date_issued': self.date_issued,
+            'filename': self.filename,
+            'file_path': self.file_path,
+            'created_at': self.created_at.isoformat() if self.created_at else None,
+            'updated_at': self.updated_at.isoformat() if self.updated_at else None
+        }
 
 # # Database configuration (to be implemented)
 # # from sqlalchemy import create_engine

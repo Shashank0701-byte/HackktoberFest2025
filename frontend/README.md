@@ -97,9 +97,9 @@ frontend/
 │   │       ├── Navbar.css
 │   │       └── Navbar.jsx
 │   ├── pages/
-│   │   ├── CertificationForm/   # Certificate form page
-│   │   │   ├── CertificateForm.css
-│   │   │   └── CertificateForm.jsx
+│   │   ├── CertCompletion/   # Certificate form page
+│   │   │   ├── CertCompletion.css
+│   │   │   └── CertCompletion.jsx
 │   │   └── NotFound/            # 404 error page
 │   │       ├── NotFounnd.css
 │   │       └── NotFound.jsx
@@ -145,8 +145,8 @@ docker run -p 5173:5173 certificate-generator-frontend
 - Maintain consistent naming conventions
 
 ### File Naming
-- Components: PascalCase (e.g., `CertificateForm.jsx`)
-- CSS files: PascalCase (e.g., `CertificateForm.css`)
+- Components: PascalCase (e.g., `CertCompletion.jsx`)
+- CSS files: PascalCase (e.g., `CertCompletion.css`)
 - Use descriptive, meaningful names
 
 ### Component Structure

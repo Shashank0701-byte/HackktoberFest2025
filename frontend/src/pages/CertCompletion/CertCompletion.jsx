@@ -1,21 +1,21 @@
-import { useState } from 'react';
-import axios from 'axios';
-import './CertificateForm.css';
-import { toast } from 'react-hot-toast';
+import { useState } from "react";
+import axios from "axios";
+import "./CertCompletion.css";
+import { toast } from "react-hot-toast";
 
-const CertificateForm = () => {
+const CertCompletion = () => {
   const [form, setForm] = useState({
-    participant_name: '',
-    event_name: '',
-    role: '',
-    date_issued: '',
+    participant_name: "",
+    event_name: "",
+    certificate_type: "completion",
+    date_issued: "",
   });
   const [loading, setLoading] = useState(false);
   const [certificateUrl, setCertificateUrl] = useState(null);
   const [imageLoading, setImageLoading] = useState(false);
   const [imageError, setImageError] = useState(null);
 
-  const API_BASE_URL = 'http://localhost:8000';
+  const API_BASE_URL = import.meta.env.VITE_API_BASE_URL || "http://localhost:8000";
 
   const handleChange = (e) => {
     setForm({ ...form, [e.target.name]: e.target.value });
@@ -26,16 +26,22 @@ const CertificateForm = () => {
     setLoading(true);
     setCertificateUrl(null);
     setImageError(null);
-  const toastId = toast.loading('Generating certificate...');
+    const toastId = toast.loading("Generating certificate...");
 
     try {
       const res = await axios.post(`${API_BASE_URL}/certificates/`, {
         participant_name: form.participant_name,
         event_name: form.event_name,
         date_issued: form.date_issued,
+        certificate_type: form.certificate_type,
       });
 
-      setForm({ participant_name: '', event_name: '', role: '', date_issued: '' });
+      setForm({
+        participant_name: "",
+        event_name: "",
+        certificate_type: "completion",
+        date_issued: "",
+      });
 
       if (res.data.download_url) {
         setImageLoading(true);
@@ -44,15 +50,18 @@ const CertificateForm = () => {
           await axios.get(url);
           setCertificateUrl(url);
         } catch (imgErr) {
-          setImageError('Could not load certificate image.');
-          toast.error('Could not load certificate image.');
+          setImageError("Could not load certificate image.");
+          toast.error("Could not load certificate image.");
         } finally {
           setImageLoading(false);
         }
       }
-      toast.success('Certificate generated successfully!', { id: toastId });
+      toast.success("Certificate generated successfully!", { id: toastId });
     } catch (err) {
-      const message = err.response?.data?.message || err.message || 'An error occurred, please try again.';
+      const message =
+        err.response?.data?.message ||
+        err.message ||
+        "An error occurred, please try again.";
       toast.error(message, { id: toastId });
     } finally {
       setLoading(false);
@@ -60,9 +69,9 @@ const CertificateForm = () => {
   };
 
   return (
-    <main style={{ flex: 1, display: 'flex', justifyContent: 'center', alignItems: 'center', flexDirection: 'column' }}>
+    <main className="cert-completion-main">
       <form className="cert-form" onSubmit={handleSubmit}>
-        <h2>Generate Certificate</h2>
+        <h2>Certificate Generator</h2>
         <label>
           Name
           <input
@@ -90,14 +99,15 @@ const CertificateForm = () => {
           />
         </label>
         <label>
-          Role
-          <input
-            type="text"
-            name="role"
-            value={form.role}
+          Certificate Type
+          <select
+            name="certificate_type"
+            value={form.certificate_type}
             onChange={handleChange}
-            placeholder="Role (optional)"
-          />
+            required>
+            <option value="participation">Certificate of Participation</option>
+            <option value="completion">Certificate of Completion</option>
+          </select>
         </label>
         <label>
           Date
@@ -110,21 +120,17 @@ const CertificateForm = () => {
           />
         </label>
         <button type="submit" disabled={loading}>
-          {loading ? 'Generating...' : 'Generate'}
+          {loading ? "Generating..." : "Generate"}
         </button>
       </form>
 
       {certificateUrl && (
-        <div style={{ marginTop: '2rem', textAlign: 'center' }}>
+        <div className="cert-preview-container">
           <h3>Certificate Preview</h3>
           {imageLoading ? (
             <p>Loading certificate...</p>
           ) : (
-            <img
-              src={certificateUrl}
-              alt="Certificate Preview"
-              style={{ maxWidth: '100%', border: '1px solid #ccc', marginBottom: '1rem' }}
-            />
+            <img src={certificateUrl} alt="Certificate Preview" />
           )}
           <div>
             <a href={certificateUrl} download>
@@ -138,4 +144,4 @@ const CertificateForm = () => {
   );
 };
 
-export default CertificateForm;
+export default CertCompletion;

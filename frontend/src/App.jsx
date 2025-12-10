@@ -2,7 +2,9 @@ import { BrowserRouter as Router, Routes, Route } from "react-router-dom";
 import Navbar from "./components/Navbar/Navbar.jsx";
 import Footer from "./components/Footer/Footer.jsx";
 import NotFound from "./pages/NotFound/NotFound.jsx";
-import CertificateForm from "./pages/CertificationForm/CertificateForm.jsx";
+import CertCompletion from "./pages/CertCompletion/CertCompletion.jsx";
+import CertParticipation from "./pages/CertParticipation/CertParticipation.jsx";
+import BulkCertificateForm from "./pages/BulkCertificateForm/BulkCertificateForm.jsx";
 import Home from "./pages/Home/Home.jsx";
 import { Toaster } from "react-hot-toast";
 
@@ -22,7 +24,9 @@ function App() {
       />
       <Routes>
         <Route path="/" element={<Home />} />
-        <Route path="/certificate" element={<CertificateForm />} />
+        <Route path="/completion" element={<CertCompletion />} />
+        <Route path="/bulk-certificate" element={<BulkCertificateForm />} />
+        <Route path="/participation" element={<CertParticipation />} />
         <Route path="*" element={<NotFound />} />
       </Routes>
       <Footer />
